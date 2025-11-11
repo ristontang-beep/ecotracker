@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>EcoTracker — Micro:bit v2</title>
+<style>
+  :root{
+    --bg:#07121a; --card:#0d1b20; --accent:#00c4a7; --muted:#9aa6b2; --glass: rgba(255,255,255,0.03);
+  }
+  html,body{height:100%; margin:0; font-family:Inter, Arial, sans-serif; background:linear-gradient(180deg,#021318 0%, #042026 100%); color:#e6f2f1;}
+  .wrap{max-width:420px;margin:28px auto;padding:18px;}
+  .card{background:var(--card); padding:16px; border-radius:12px; box-shadow:0 6px 24px rgba(0,0,0,0.6); margin-bottom:14px;}
+  h1{margin:0;font-size:20px;color:var(--accent);}
+  .small{font-size:13px;color:var(--muted);margin-top:6px;}
+  input[type="text"]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:var(--glass);color:inherit;margin-top:10px;}
+  button{width:100%;padding:10px;border-radius:10px;border:none;background:var(--accent);color:#012;font-weight:700;cursor:pointer;margin-top:10px;}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent);padding:8px;border-radius:8px;cursor:pointer;margin-top:8px;}
+  .stats{display:flex;gap:10px;margin-top:12px;}
+  .stat{flex:1;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;text-align:center;}
+  .stat .num{font-size:20px;font-weight:700;color:#fff;}
+  .progress{height:12px;background:#062a1f;border-radius:8px;overflow:hidden;margin-top:8px;}
+  .progress > i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#66ffd6);transition:width 600ms;}
+  .badge{background:rgba(0,196,167,0.12);padding:6px 8px;border-radius:8px;color:var(--accent);font-weight:700;margin-top:6px;}
+  #connectInfo{margin-top:8px;color:var(--muted);font-size:13px;}
+  #confettiCanvas{position:fixed;left:0;top:0;width:100%;height:100%;z-index:9999;pointer-events:none;}
+  .link-like{color:var(--accent);text-decoration:underline;cursor:pointer;font-size:13px}
+  pre {background:#051617;padding:10px;border-radius:8px;overflow:auto;color:#cfeee3;font-size:12px}
+</style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+<div class="wrap">
+  <div class="card" id="loginCard">
+    <h1>EcoTracker ♻️</h1>
+    <div class="small">Sign up or log in to start tracking with your Micro:bit</div>
+    <input id="username" type="text" placeholder="Username (e.g. Jonas123)" />
+    <button id="startBtn">Get Started</button>
+    <div class="small" style="margin-top:8px">Your progress is saved locally on this device.</div>
+  </div>
+
+  <div class="card hidden" id="dashboardCard">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h1>EcoTracker</h1>
+        <div class="small" id="welcomeText">Welcome</div>
+      </div>
+      <div style="text-align:right;">
+        <button id="logoutBtn" class="btn-ghost">Log Out</button>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="small">Daily</div><div class="num" id="dailyPoints">0</div><div class="small">max 10/day</div></div>
+      <div class="stat"><div class="small">Total</div><div class="num" id="totalPoints">0</div><div class="small">All-time</div></div>
+      <div class="stat"><div class="small">Streak</div><div class="num" id="streak">0</div><div class="small">days</div></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small">Progress to next reward: <strong id="nextReward">Tote Bag</strong></div>
+      <div class="progress" aria-hidden="true"><i id="progressFill"></i></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small">Rewards</div>
+      <div id="rewardsList">
+        <!-- rewards are built by script -->
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small">Achievements</div>
+      <div id="achievementList"></div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div style="display:flex; gap:10px;">
+        <button id="connectBtn" style="flex:1">Connect Micro:bit</button>
+        <button id="disconnectBtn" class="btn-ghost hidden" style="flex:1">Disconnect</button>
+      </div>
+      <div id="connectInfo">Not connected</div>
+    </div>
+
+    <div style="margin-top:12px">
+      <div class="small">Leaderboard</div>
+      <div id="leaderboardList"></div>
+    </div>
+
+    <div style="margin-top:12px" class="small">
+      <div>Need the Micro:bit MakeCode program? Expand below.</div>
+      <details style="margin-top:8px">
+        <summary class="link-like">Show MakeCode (v2) example to send strings for motion, sound, light, button</summary>
+        <div style="margin-top:8px">
+          <div class="small">Use these blocks in MakeCode (Add Bluetooth / start uart service):</div>
+<pre>
+// Example MakeCode (JavaScript) pseudocode to send strings over UART when sensors trigger.
+// Use the MakeCode blocks editor and add Bluetooth extension; then add these blocks or JS.
+
+bluetooth.startUartService()
+
+// Button A -> send "BUTTONA"
+input.onButtonPressed(Button.A, function () {
+    bluetooth.uartWriteString("BUTTONA")
+})
+
+// Button B -> send "BUTTONB"
+input.onButtonPressed(Button.B, function () {
+    bluetooth.uartWriteString("BUTTONB")
+})
+
+// Shake (motion) -> send "MOTION"
+input.onGesture(Gesture.Shake, function () {
+    bluetooth.uartWriteString("MOTION")
+})
+
+// Loud sound -> send "SOUND"
+input.onSound(DetectedSound.Loud, function () {
+    bluetooth.uartWriteString("SOUND")
+})
+
+// Bright light -> send "LIGHT"
+basic.forever(function () {
+    if (input.lightLevel() > 100) { // adjust threshold for your environment
+        bluetooth.uartWriteString("LIGHT")
+        basic.pause(1000)
+    }
+})
+</pre>
+          <div class="small">Flash this to your micro:bit v2. When any of these strings are sent the web app will add 2 points (up to 10/day).</div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <div class="small" style="text-align:center; margin-top:6px">Tips: Use Chrome or Edge on Android/desktop for Bluetooth.</div>
+</div>
+
+<script>
+/* -------------- CONFIG -------------- */
+const POINTS_PER_TRASH = 2;
+const DAILY_MAX = 10;
+const REWARDS = [
+  { pts: 30, name: 'Tote Bag' },
+  { pts: 50, name: 'Reusable Water Bottle' },
+  // lime scooter removed
+  { pts: 80, name: 'Tangerine Bike (1 day)' },
+  { pts:100, name: 'Unlimited Rides (1 day)' }
+];
+const ACHIEVEMENTS = [
+  { pts: 10, name: 'Trash Hero' },
+  { pts: 50, name: 'Eco Warrior' },
+  { pts:100, name: 'Recycling Champion' }
+];
+const TRASH_TYPES = ['General','Plastic','Paper','Light','Sound','Motion','ButtonA','ButtonB'];
+
+/* UART UUIDs (Nordic UART - good for micro:bit) */
+const UART_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const UART_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notify (device -> client)
+const UART_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // write (client -> device)
+
+/* -------------- STATE & ELEMENTS -------------- */
+let user = null;
+let dailyPoints = 0;
+let totalPoints = 0;
+let streak = 0;
+let lastDate = null; // ISO date string when user last earned points (for streak)
+let pointsHistory = {}; // per-type history array
+let microbitDevice = null;
+let microbitServer = null;
+let uartTxChar = null;
+let lastEventTime = 0; // cooldown to avoid spam (ms)
+const EVENT_COOLDOWN_MS = 5000; // 5 seconds between counted events per client
+
+/* DOM */
+const loginCard = document.getElementById('loginCard');
+const dashboardCard = document.getElementById('dashboardCard');
+const startBtn = document.getElementById('startBtn');
+const usernameInput = document.getElementById('username');
+const welcomeText = document.getElementById('welcomeText');
+const dailyEl = document.getElementById('dailyPoints');
+const totalEl = document.getElementById('totalPoints');
+const streakEl = document.getElementById('streak');
+const rewardsListEl = document.getElementById('rewardsList');
+const achievementListEl = document.getElementById('achievementList');
+const nextRewardEl = document.getElementById('nextReward');
+const progressFill = document.getElementById('progressFill');
+const connectBtn = document.getElementById('connectBtn');
+const disconnectBtn = document.getElementById('disconnectBtn');
+const connectInfo = document.getElementById('connectInfo');
+const logoutBtn = document.getElementById('logoutBtn');
+const leaderboardList = document.getElementById('leaderboardList');
+const confettiCanvas = document.getElementById('confettiCanvas');
+const confettiCtx = confettiCanvas.getContext('2d');
+
+/* initialize canvas size */
+function resizeConfettiCanvas(){ confettiCanvas.width = window.innerWidth; confettiCanvas.height = window.innerHeight; }
+window.addEventListener('resize', resizeConfettiCanvas);
+resizeConfettiCanvas();
+
+/* -------------- HELPERS -------------- */
+function isoToday(){
+  const d = new Date();
+  return d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+}
+function saveUserData(){
+  if(!user) return;
+  const data = { dailyPoints, totalPoints, streak, lastDate, pointsHistory };
+  localStorage.setItem('ecotracker_user_' + user, JSON.stringify(data));
+  // also update microbit binding map (if bound)
+  if(microbitDevice && microbitDevice.id) {
+    localStorage.setItem('ecotracker_microbit_' + microbitDevice.id, user);
+  }
+  updateLeaderboard();
+}
+function loadUserData(u){
+  const raw = localStorage.getItem('ecotracker_user_' + u);
+  if(!raw) return null;
+  try { return JSON.parse(raw); } catch(e){ return null; }
+}
+
+/* Check if a micro:bit device ID is already bound to a different user */
+function microbitBoundToOther(deviceId){
+  if(!deviceId) return false;
+  const owner = localStorage.getItem('ecotracker_microbit_' + deviceId);
+  return owner && owner !== user;
+}
+function bindMicrobitToUser(deviceId){
+  if(!deviceId || !user) return false;
+  const existing = localStorage.getItem('ecotracker_microbit_' + deviceId);
+  if(existing && existing !== user) return false;
+  localStorage.setItem('ecotracker_microbit_' + deviceId, user);
+  // also save on user object
+  const data = loadUserData(user) || {};
+  data.boundDeviceId = deviceId;
+  localStorage.setItem('ecotracker_user_' + user, JSON.stringify(data));
+  return true;
+}
+
+/* -------------- UI Render -------------- */
+function renderRewards(){
+  rewardsListEl.innerHTML = '';
+  for(const r of REWARDS){
+    const row = document.createElement('div');
+    row.className = 'badge';
+    row.style.display = 'flex';
+    row.style.justifyContent = 'space-between';
+    row.style.alignItems = 'center';
+    row.style.marginTop = '6px';
+    row.innerHTML = `<div>${r.name}</div><div style="opacity:0.9">${r.pts} pts</div>`;
+    if(totalPoints < r.pts) row.style.opacity = 0.6;
+    rewardsListEl.appendChild(row);
+  }
+}
+
+function updateAchievements(){
+  achievementListEl.innerHTML = '';
+  for(const a of ACHIEVEMENTS){
+    if(totalPoints >= a.pts){
+      const d = document.createElement('div');
+      d.className = 'badge';
+      d.textContent = a.name;
+      achievementListEl.appendChild(d);
+    }
+  }
+}
+
+function updateProgressBar(){
+  const next = REWARDS.find(r => totalPoints < r.pts);
+  nextRewardEl.innerText = next ? next.name : 'All unlocked';
+  const last = [...REWARDS].reverse().find(r => totalPoints >= r.pts);
+  const lastPts = last ? last.pts : 0;
+  const nextPts = next ? next.pts : (REWARDS[REWARDS.length-1].pts);
+  const pct = next ? Math.round(((totalPoints - lastPts) / (nextPts - lastPts)) * 100) : 100;
+  progressFill.style.width = Math.max(0, Math.min(100, pct)) + '%';
+}
+
+function updateLeaderboard(){
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('ecotracker_user_'));
+  const users = keys.map(k => ({ name: k.replace('ecotracker_user_',''), data: JSON.parse(localStorage.getItem(k)) }));
+  users.sort((a,b) => (b.data.totalPoints || 0) - (a.data.totalPoints || 0));
+  leaderboardList.innerHTML = '';
+  for(let i=0;i<Math.min(5, users.length);i++){
+    const entry = document.createElement('div');
+    entry.className = 'badge';
+    entry.style.display = 'flex';
+    entry.style.justifyContent = 'space-between';
+    entry.textContent = `${i+1}. ${users[i].name} — ${users[i].data.totalPoints || 0} pts`;
+    leaderboardList.appendChild(entry);
+  }
+}
+
+/* refresh everything on screen */
+function refreshUI(){
+  dailyEl.innerText = dailyPoints;
+  totalEl.innerText = totalPoints;
+  streakEl.innerText = streak;
+  renderRewards();
+  updateAchievements();
+  updateProgressBar();
+  saveUserData();
+}
+
+/* Confetti simple burst */
+function confettiBurst(){
+  const ctx = confettiCtx;
+  const w = confettiCanvas.width, h = confettiCanvas.height;
+  const count = 140;
+  for(let i=0;i<count;i++){
+    const x = Math.random()*w;
+    const y = Math.random()*h;
+    const s = Math.random()*6+2;
+    ctx.fillStyle = `rgba(${Math.floor(0+Math.random()*200)}, ${Math.floor(160+Math.random()*95)}, ${Math.floor(160+Math.random()*95)}, ${0.8*Math.random()+0.2})`;
+    ctx.fillRect(x,y,s,s);
+  }
+  setTimeout(()=>{ ctx.clearRect(0,0,w,h); }, 900);
+}
+
+/* -------------- POINTS LOGIC (streak once per day) -------------- */
+function addPointsFromEvent(type = 'General'){
+  const now = Date.now();
+  if(now - lastEventTime < EVENT_COOLDOWN_MS){
+    // too soon after last accepted event
+    connectInfo.innerText = 'Event ignored: cooldown';
+    return;
+  }
+  lastEventTime = now;
+
+  if(dailyPoints >= DAILY_MAX){
+    connectInfo.innerText = 'Daily limit reached';
+    return;
+  }
+  const can = Math.min(POINTS_PER_TRASH, DAILY_MAX - dailyPoints);
+  dailyPoints += can;
+  totalPoints += can;
+
+  const today = isoToday();
+  if(lastDate !== today){
+    // first time earning today -> increase streak
+    streak = (typeof streak === 'number') ? streak + 1 : 1;
+    lastDate = today;
+  }
+  // store history
+  if(!pointsHistory) pointsHistory = {};
+  if(!pointsHistory[type]) pointsHistory[type] = [];
+  pointsHistory[type].push({ date: today, pts: can });
+
+  connectInfo.innerText = `+${can} points (${type})`;
+  refreshUI();
+
+  // check achievements that should trigger confetti (simple rule: new achievement when crossing threshold)
+  for(const a of ACHIEVEMENTS){
+    if(totalPoints >= a.pts && !document.querySelector(`#achieved_${a.name}`)){
+      // create marker
+      const el = document.createElement('span');
+      el.id = `achieved_${a.name}`;
+      document.body.appendChild(el);
+      confettiBurst();
+    }
+  }
+}
+
+/* -------------- Micro:bit BLE integration -------------- */
+async function connectMicrobit(){
+  if(!navigator.bluetooth){
+    alert('Web Bluetooth is not supported in this browser. Use Chrome/Edge on Android or desktop.');
+    return;
+  }
+
+  try {
+    connectInfo.innerText = 'Requesting device...';
+    microbitDevice = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [UART_SERVICE_UUID] }],
+      optionalServices: [UART_SERVICE_UUID]
+    });
+
+    // check binding to another user
+    if(microbitBoundToOther(microbitDevice.id)){
+      alert('This micro:bit is already bound to another account on this device. Use a different micro:bit or unbind it first.');
+      connectInfo.innerText = 'Bound to other user';
+      return;
+    }
+
+    connectInfo.innerText = 'Connecting...';
+    microbitServer = await microbitDevice.gatt.connect();
+    const service = await microbitServer.getPrimaryService(UART_SERVICE_UUID);
+    uartTxChar = await service.getCharacteristic(UART_TX_UUID);
+    await uartTxChar.startNotifications();
+    uartTxChar.addEventListener('characteristicvaluechanged', handleMicrobitMessage);
+
+    // bind microbit to user for anti-cheat (local)
+    bindMicrobitToUser(microbitDevice.id);
+
+    connectInfo.innerText = 'Connected';
+    connectBtn.classList.add('hidden');
+    disconnectBtn.classList.remove('hidden');
+
+    microbitDevice.addEventListener('gattserverdisconnected', () => {
+      connectInfo.innerText = 'Disconnected';
+      connectBtn.classList.remove('hidden');
+      disconnectBtn.classList.add('hidden');
+    });
+
+  } catch(err){
+    console.error(err);
+    alert('Failed to connect to micro:bit: ' + (err.message || err));
+    connectInfo.innerText = 'Connection failed';
+  }
+}
+
+function disconnectMicrobit(){
+  try {
+    if(microbitDevice && microbitDevice.gatt.connected) microbitDevice.gatt.disconnect();
+  } catch(e){}
+  connectInfo.innerText = 'Disconnected';
+  connectBtn.classList.remove('hidden');
+  disconnectBtn.classList.add('hidden');
+}
+
+/* handle incoming UART messages from micro:bit */
+function handleMicrobitMessage(event){
+  // decode text
+  const text = new TextDecoder().decode(event.target.value).trim();
+  const msg = text.toLowerCase();
+  console.log('microbit ->', msg);
+
+  // Map many possible micro:bit messages to types
+  if(msg.includes('motion') || msg.includes('shake') || msg.includes('gesture')) addPointsFromEvent('Motion');
+  else if(msg.includes('sound') || msg.includes('loud') || msg.includes('noise')) addPointsFromEvent('Sound');
+  else if(msg.includes('light') || msg.includes('bright')) addPointsFromEvent('Light');
+  else if(msg.includes('buttona')) addPointsFromEvent('ButtonA');
+  else if(msg.includes('buttonb')) addPointsFromEvent('ButtonB');
+  else if(msg.includes('plastic')) addPointsFromEvent('Plastic');
+  else if(msg.includes('paper')) addPointsFromEvent('Paper');
+  else if(msg.includes('trash')) addPointsFromEvent('General');
+  else {
+    // unrecognized message - ignore or log
+    console.log('Unmapped microbit message:', msg);
+  }
+}
+
+/* -------------- UI events: login/logout/connect -------------- */
+startBtn.addEventListener('click', () => {
+  const name = usernameInput.value.trim();
+  if(!name){ alert('Enter a username'); return; }
+  user = name;
+
+  // load saved data or initialize
+  const data = loadUserData(user);
+  const today = isoToday();
+  if(data){
+    dailyPoints = (data.lastDate === today) ? data.dailyPoints : 0;
+    totalPoints = data.totalPoints || 0;
+    streak = data.streak || 0;
+    lastDate = data.lastDate || today;
+    pointsHistory = data.pointsHistory || {};
+  } else {
+    dailyPoints = 0; totalPoints = 0; streak = 0; lastDate = today; pointsHistory = {};
+    saveUserData();
+  }
+
+  welcomeText.innerText = 'Welcome ' + user;
+  loginCard.classList.add('hidden');
+  dashboardCard.classList.remove('hidden');
+  refreshUI();
+  scheduleMidnightReset();
+});
+
+logoutBtn.addEventListener('click', () => {
+  // disconnect microbit (if connected)
+  disconnectMicrobit();
+  // clear UI and go back to login
+  dashboardCard.classList.add('hidden');
+  loginCard.classList.remove('hidden');
+  usernameInput.value = '';
+  user = null;
+});
+
+/* connect/disconnect buttons */
+connectBtn.addEventListener('click', connectMicrobit);
+disconnectBtn.addEventListener('click', disconnectMicrobit);
+
+/* -------------- Midnight reset (dailyPoints) -------------- */
+function scheduleMidnightReset(){
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0,0,0,200);
+  const ms = next - now;
+  setTimeout(()=> {
+    dailyPoints = 0;
+    lastDate = isoToday();
+    refreshUI();
+    scheduleMidnightReset();
+  }, ms + 50);
+}
+
+/* -------------- initial UI build: rewards and leaderboard -------------- */
+(function init(){
+  // build rewards UI
+  renderRewards();
+  updateLeaderboard();
+})();
+
+</script>
+</body>
+</html>
